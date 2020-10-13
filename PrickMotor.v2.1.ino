@@ -30,10 +30,6 @@ int ywalk;
 int * current_pos;
 int * current_max_pos;
 
-int dir;
-int stp;
-int en;
-
 bool cal_active = false;
 int unsigned set_cnt = 0;
 
@@ -78,6 +74,47 @@ void set_microstepping() {
   caldly /= micro_mode;
 }
 
+void move_motor(char motor_type, int dly, int step_count, char direct) {
+  int dir;
+  int stp;
+  int en;
+
+  if(motor_type=='x'){
+    dir = DIRX;
+    stp = STEPX;
+    en = ENX;
+  }else if(motor_type=='y'){
+    dir = DIRY;
+    stp = STEPY;
+    en = ENY;
+  }else if(motor_type=='z'){
+    dir = DIRZ;
+    stp = STEPZ;
+    en = ENZ;
+  }
+
+  // Set Direction
+  if(direct=="left"){
+    digitalWrite(dir, HIGH);
+  }else{
+    digitalWrite(dir, LOW);
+  }
+
+  // Enable Motor
+  digitalWrite(en, LOW);
+  
+  for(int step = 0; step <= step_count; step++){
+    digitalWrite(stp, HIGH);
+    delayMicroseconds(dly);
+    digitalWrite(stp, LOW);
+    delayMicroseconds(dly);
+  }
+
+  if(motor_type!="z"){
+    digitalWrite(en, HIGH);
+  }
+}
+
 int bin_chan() {
   int input1 = digitalRead(A2) * 4 + digitalRead(A3) * 8 + digitalRead(A4) * 16 + digitalRead(A5) * 32;
   delayMicroseconds(100);
@@ -90,80 +127,45 @@ int bin_chan() {
 }
 
 void motor_calibration(char motor_type) {
-  int calstp;
-  int caldl;
+  int calstp = calsteps;
+  int caldl = caldly;
 
   if(motor_type=='x'){
+    // Adjust to double StepCount for X-Motor
     calstp = calsteps * 2;
     caldl = caldly / 2;
-  }else{
-    calstp = calsteps;
-    caldl = caldly;
   }
   
   while(cal_active==true){
     // Increase Direction for calsteps
     if(bin_chan()==52){
-      digitalWrite(en, LOW);
-      digitalWrite(dir, HIGH);
-      for(int step = 0; step <= calstp; step++){
-        digitalWrite(stp, HIGH);
-        delay(caldl);
-        digitalWrite(stp, LOW);
-        delay(caldl);
-      }
-      digitalWrite(en, HIGH);
+      move_motor(motor_type, caldl, calstp, "left");
       *current_pos += calstp;
     }
     
     // Decrease Direction for calsteps
     if(bin_chan()==48){
-      digitalWrite(en, LOW);
-      digitalWrite(dir, LOW);
-      for(int step = 0; step <= calstp; step++){
-        digitalWrite(stp, HIGH);
-        delay(caldl);
-        digitalWrite(stp, LOW);
-        delay(caldl);
-      }
-      digitalWrite(en, HIGH);
+      move_motor(motor_type, caldl, calstp, "right");
       *current_pos -= calstp;
     }
     
     // Set Min/Max depending on set_cnt and motor_type
     if(bin_chan()==56){
       if(motor_type == 'z'){
-        digitalWrite(en, LOW);
-        digitalWrite(dir, LOW);
-        for(int step = 0; step <= *current_max_pos; step++){
-          digitalWrite(stp, HIGH);
-          delay(caldl);
-          digitalWrite(stp, LOW);
-          delay(caldl);
-        }
+        move_motor(motor_type, caldl, *current_max_pos, "right");
         delay(500);
-        digitalWrite(dir, HIGH);
-        for(int step = 0; step <= *current_max_pos * 3; step++){
-          digitalWrite(stp, HIGH);
-          delay(caldl);
-          digitalWrite(stp, LOW);
-          delay(caldl);
-        }
-        digitalWrite(en, HIGH);
+        move_motor(motor_type, caldl, *current_max_pos * 3, "left");
         cal_active = false;
-
       }else if(set_cnt == 0){
         *current_pos = 0;
         *current_max_pos = 0;
         set_cnt = 1;
         delay(500);
-        Serial.println("Set 0");
       }else if(set_cnt == 1){
         *current_max_pos = *current_pos;
         set_cnt = 0;
         cal_active = false;
         delay(500);
-        Serial.println("Set 1");
       }
     }
   }
@@ -209,11 +211,6 @@ void loop() {
   // Select Motors
   // Motor X-Direction
   if(bin_chan()==36){
-    dir = DIRX;
-    stp = STEPX;
-    en = ENX;
-    digitalWrite(ENY, HIGH);
-    digitalWrite(ENZ, HIGH);
 
     cal_active = true;
     current_pos = &xpos;
@@ -224,11 +221,6 @@ void loop() {
   
   // Motor Y-Direction
   if(bin_chan()==40){
-    dir = DIRY;
-    stp = STEPY;
-    en = ENY;
-    digitalWrite(ENX, HIGH);
-    digitalWrite(ENZ, HIGH);
 
     cal_active = true;
 
@@ -240,11 +232,6 @@ void loop() {
   
   // Motor Z-Direction
   if(bin_chan()==44){
-    dir = DIRZ;
-    stp = STEPZ;
-    en = ENZ;
-    digitalWrite(ENX, HIGH);
-    digitalWrite(ENY, HIGH);
 
     cal_active = true;
     current_pos = 0;
@@ -258,158 +245,75 @@ void loop() {
   if(bin_chan()==60){
     // Center X-Direction
     xwalk = xmax_pos / 2 - xpos;
-    digitalWrite(ENX, LOW);
     if(xwalk > 0){
-      digitalWrite(DIRX, HIGH);
+      move_motor('x', xydly, abs(xwalk), "left");
     }else{
-      digitalWrite(DIRX, LOW);
+      move_motor('x', xydly, abs(xwalk), "right");
     }
-    for(int step = 0; step <= abs(xwalk); step++){
-      digitalWrite(STEPX, HIGH);
-      delay(xydly);
-      digitalWrite(STEPX, LOW);
-      delay(xydly);
-    }
-    digitalWrite(ENX, HIGH);
     xpos = xmax_pos / 2;
 
     // Center Y-Direction
     ywalk = ymax_pos / 2 - ypos;
-    digitalWrite(ENY, LOW);
     if(ywalk > 0){
-      digitalWrite(DIRY, HIGH);
+      move_motor('y', xydly, abs(ywalk), "left");
     }else{
-      digitalWrite(DIRY, LOW);
+      move_motor('y', xydly, abs(ywalk), "right");
     }
-    for(int step = 0; step <= abs(ywalk); step++){
-      digitalWrite(STEPY, HIGH);
-      delay(xydly);
-      digitalWrite(STEPY, LOW);
-      delay(xydly);
-    }
-    digitalWrite(ENY, HIGH);
     ypos = ymax_pos / 2;
   }
 
 
-  // uses old Matlab Prickstim to drive range of X and Y
-  if(bin_chan()==40){
-    digitalWrite(ENX, LOW);
-    digitalWrite(DIRX, HIGH);
-
-    for(int step = 0; step <= xmax_pos ; step++){
-      digitalWrite(STEPX, HIGH);
-      delay(xydly);
-      digitalWrite(STEPX, LOW);
-      delay(xydly);
-    }
-    delay(1000);
-    digitalWrite(DIRX, LOW);
-
-    for(int step = 0; step <= xmax_pos ; step++){
-      digitalWrite(STEPX, HIGH);
-      delay(xydly);
-      digitalWrite(STEPX, LOW);
-      delay(xydly);
-    }
-
-    digitalWrite(ENX, HIGH);
-
-    digitalWrite(ENY, LOW);
-    digitalWrite(DIRY, LOW);
-
-    for(int step = 0; step <= ymax_pos ; step++){
-      digitalWrite(STEPY, HIGH);
-      delay(xydly);
-      digitalWrite(STEPY, LOW);
-      delay(xydly);
-    }
-    delay(1000);
-    digitalWrite(DIRY, HIGH);
-
-    for(int step = 0; step <= ymax_pos ; step++){
-      digitalWrite(STEPY, HIGH);
-      delay(xydly);
-      digitalWrite(STEPY, LOW);
-      delay(xydly);
-    }
-    digitalWrite(ENY, HIGH);
-  }
+//  // uses old Matlab Prickstim to drive range of X and Y
+//  if(bin_chan()==40){
+//    move_motor('x', xydly, xmax_pos, "left");
+//    delay(1000);
+//    move_motor('x', xydly, xmax_pos, "right");
+//
+//    move_motor('y', xydly, xmax_pos, "left");
+//    delay(1000);
+//    move_motor('y', xydly, xmax_pos, "right");
+//  }
 
   // Start Sequence
   if(bin_chan()==32){
-
-    // Move down in Z-Axis
-    digitalWrite(ENZ, LOW);
-    digitalWrite(DIRZ, LOW);
     
     // Send Down-Trigger
     digitalWrite(A0, HIGH);
     delay(10);
     digitalWrite(A0, LOW);
-
-    for(int step = 0; step <= zrange * 3 ; step++){
-      digitalWrite(STEPZ, HIGH);
-      delay(zdly);
-      digitalWrite(STEPZ, LOW);
-      delay(zdly);
-    }
+    
+    // Move down in Z-Axis
+    move_motor('z', zdly, zrange * 3, "right");
     
     delay(ontime);
-
-    // Move up in Z-Axis
-    digitalWrite(DIRZ, HIGH);
     
     // Send Up-Trigger
     digitalWrite(A1, HIGH);
     delay(10);
     digitalWrite(A1, LOW);
-
-    for(int step = 0; step <= zrange * 3 ; step++){
-      digitalWrite(STEPZ, HIGH);
-      delay(zdly);
-      digitalWrite(STEPZ, LOW);
-      delay(zdly);
-    }
+    
+    // Move up in Z-Axis
+    move_motor('z', zdly, zrange * 3, "left");
 
     // Randomly move X-Axis in given boundaries
     xwalk = random(0 - xpos + minwalk, xmax_pos - xpos);
     xpos += xwalk;
 
-    digitalWrite(ENX, LOW);
     if(xwalk > 0){
-      digitalWrite(DIRX, HIGH);
+      move_motor('x', xydly, abs(xwalk), "left");
     }else{
-      digitalWrite(DIRX, LOW);
+      move_motor('x', xydly, abs(xwalk), "right");
     }
-
-    for(int step = 0; step <= abs(xwalk) ; step++){
-      digitalWrite(STEPX, HIGH);
-      delay(xydly);
-      digitalWrite(STEPX, LOW);
-      delay(xydly);
-    }
-    digitalWrite(ENX, HIGH);
 
     // Randomly move Y-Axis in given boundaries
     ywalk = random(0 - ypos + minwalk, ymax_pos - ypos);
     ypos += ywalk;
-    Serial.println(ywalk);
 
-    digitalWrite(ENY, LOW);
     if(ywalk > 0){
-      digitalWrite(DIRY, LOW);
+      move_motor('y', xydly, abs(ywalk), "left");
     }else{
-      digitalWrite(DIRY, HIGH);
+      move_motor('y', xydly, abs(ywalk), "right");
     }
-
-    for(int step = 0; step <= abs(ywalk) ; step++){
-      digitalWrite(STEPY, HIGH);
-      delay(xydly);
-      digitalWrite(STEPY, LOW);
-      delay(xydly);
-    }
-    digitalWrite(ENY, HIGH);
     
   }
 
