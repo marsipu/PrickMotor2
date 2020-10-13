@@ -20,11 +20,11 @@
 #define ALLSTBY 11
 
 int xpos = 0;
-int xmax_pos = 400;
+int xmax_pos = 400 * 8;
 int xwalk;
 
 int ypos = 0;
-int ymax_pos = 200;
+int ymax_pos = 200 * 8;
 int ywalk;
 
 int * current_pos;
@@ -39,12 +39,12 @@ int zrange = 60;
 int minwalk = 100;
 // Elasticity-Compensation for XY-Direction (moving a bit farther and then back)
 int elast_comp = 40;
+//Step-Count for one Calibration step
+int calsteps = 25;
 //Velocity in microseconds for z-direction
 int zdly = 4000;
 //Velocity in microseconds for xy-direction
 int xydly = 4000;
-//Step-Count for one Calibration step
-int calsteps = 25;
 // Delay for Calibration in microseconds
 int caldly = 4000;
 //Latency between Down and Up in miliseconds
@@ -68,6 +68,11 @@ void set_microstepping() {
   digitalWrite(DIRZ, mode4);
 
   digitalWrite(ALLSTBY, HIGH);
+
+  zrange *= micro_mode;
+  minwalk *= micro_mode;
+  elast_comp *= micro_mode;
+  calsteps *= micro_mode;
 
   zdly /= micro_mode;
   xydly /= micro_mode;
@@ -132,6 +137,7 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
     // Only X and Y are disabled after movement, Z stays on since calibration
     digitalWrite(en, HIGH);
   }
+  
 }
 
 int bin_chan() {
