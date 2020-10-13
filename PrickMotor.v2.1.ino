@@ -93,8 +93,13 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
     en = ENZ;
   }
 
+  if(motor_type!='z'){
+    // Increase Step-Count to account for Fiber-Elasticity in X and Y
+    step_count += elast_comp;
+  }
+
   // Set Direction
-  if(direct=="left"){
+  if(direct=='l'){
     digitalWrite(dir, HIGH);
   }else{
     digitalWrite(dir, LOW);
@@ -110,7 +115,21 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
     delayMicroseconds(dly);
   }
 
-  if(motor_type!="z"){
+  if(motor_type!='z'){
+    // Reverse Movemont to account for Fiber-Elasticity in X and Y
+    if(direct=='l'){
+      digitalWrite(dir, LOW);
+    }else{
+      digitalWrite(dir, HIGH);
+    }
+    
+    for(int step = 0; step <= elast_comp; step++){
+      digitalWrite(stp, HIGH);
+      delayMicroseconds(dly);
+      digitalWrite(stp, LOW);
+      delayMicroseconds(dly);
+    }
+    // Only X and Y are disabled after movement, Z stays on since calibration
     digitalWrite(en, HIGH);
   }
 }
@@ -139,22 +158,22 @@ void motor_calibration(char motor_type) {
   while(cal_active==true){
     // Increase Direction for calsteps
     if(bin_chan()==52){
-      move_motor(motor_type, caldl, calstp, "left");
+      move_motor(motor_type, caldl, calstp, 'l');
       *current_pos += calstp;
     }
     
     // Decrease Direction for calsteps
     if(bin_chan()==48){
-      move_motor(motor_type, caldl, calstp, "right");
+      move_motor(motor_type, caldl, calstp, 'r');
       *current_pos -= calstp;
     }
     
     // Set Min/Max depending on set_cnt and motor_type
     if(bin_chan()==56){
       if(motor_type == 'z'){
-        move_motor(motor_type, caldl, *current_max_pos, "right");
+        move_motor(motor_type, caldl, *current_max_pos, 'r');
         delay(500);
-        move_motor(motor_type, caldl, *current_max_pos * 3, "left");
+        move_motor(motor_type, caldl, *current_max_pos * 3, 'l');
         cal_active = false;
       }else if(set_cnt == 0){
         *current_pos = 0;
@@ -246,18 +265,18 @@ void loop() {
     // Center X-Direction
     xwalk = xmax_pos / 2 - xpos;
     if(xwalk > 0){
-      move_motor('x', xydly, abs(xwalk), "left");
+      move_motor('x', xydly, abs(xwalk), 'l');
     }else{
-      move_motor('x', xydly, abs(xwalk), "right");
+      move_motor('x', xydly, abs(xwalk), 'r');
     }
     xpos = xmax_pos / 2;
 
     // Center Y-Direction
     ywalk = ymax_pos / 2 - ypos;
     if(ywalk > 0){
-      move_motor('y', xydly, abs(ywalk), "left");
+      move_motor('y', xydly, abs(ywalk), 'l');
     }else{
-      move_motor('y', xydly, abs(ywalk), "right");
+      move_motor('y', xydly, abs(ywalk), 'r');
     }
     ypos = ymax_pos / 2;
   }
@@ -265,13 +284,13 @@ void loop() {
 
 //  // uses old Matlab Prickstim to drive range of X and Y
 //  if(bin_chan()==40){
-//    move_motor('x', xydly, xmax_pos, "left");
+//    move_motor('x', xydly, xmax_pos, 'l');
 //    delay(1000);
-//    move_motor('x', xydly, xmax_pos, "right");
+//    move_motor('x', xydly, xmax_pos, 'r');
 //
-//    move_motor('y', xydly, xmax_pos, "left");
+//    move_motor('y', xydly, xmax_pos, 'l');
 //    delay(1000);
-//    move_motor('y', xydly, xmax_pos, "right");
+//    move_motor('y', xydly, xmax_pos, 'r');
 //  }
 
   // Start Sequence
@@ -283,7 +302,7 @@ void loop() {
     digitalWrite(A0, LOW);
     
     // Move down in Z-Axis
-    move_motor('z', zdly, zrange * 3, "right");
+    move_motor('z', zdly, zrange * 3, 'r');
     
     delay(ontime);
     
@@ -293,16 +312,16 @@ void loop() {
     digitalWrite(A1, LOW);
     
     // Move up in Z-Axis
-    move_motor('z', zdly, zrange * 3, "left");
+    move_motor('z', zdly, zrange * 3, 'l');
 
     // Randomly move X-Axis in given boundaries
     xwalk = random(0 - xpos + minwalk, xmax_pos - xpos);
     xpos += xwalk;
 
     if(xwalk > 0){
-      move_motor('x', xydly, abs(xwalk), "left");
+      move_motor('x', xydly, abs(xwalk), 'l');
     }else{
-      move_motor('x', xydly, abs(xwalk), "right");
+      move_motor('x', xydly, abs(xwalk), 'r');
     }
 
     // Randomly move Y-Axis in given boundaries
@@ -310,9 +329,9 @@ void loop() {
     ypos += ywalk;
 
     if(ywalk > 0){
-      move_motor('y', xydly, abs(ywalk), "left");
+      move_motor('y', xydly, abs(ywalk), 'l');
     }else{
-      move_motor('y', xydly, abs(ywalk), "right");
+      move_motor('y', xydly, abs(ywalk), 'r');
     }
     
   }
