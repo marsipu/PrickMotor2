@@ -35,10 +35,12 @@ int unsigned set_cnt = 0;
 
 // Steps to go down from zero at skin, twice up
 int zrange = 60;
+// Multiplicator for Z
+int zmulti = 5;
 // Minimum Steps to walk randomly in XY-Direction
-int minwalk = 100;
+int minwalk = 150;
 // Elasticity-Compensation for XY-Direction (moving a bit farther and then back)
-int elast_comp = 20;
+int elast_comp = 50;
 //Step-Count for one Calibration step
 int calsteps = 50;
 //Velocity in microseconds for z-direction
@@ -153,7 +155,7 @@ int bin_chan() {
   }
 }
 
-void center() {
+void centerx() {
     Serial.println("Centering");
     // Center X-Direction
     xwalk = xmax_pos / 2 - xpos;
@@ -163,7 +165,9 @@ void center() {
       move_motor('x', xydly, abs(xwalk), 'r');
     }
     xpos = xmax_pos / 2;
+}
 
+void centery() {
     // Center Y-Direction
     ywalk = ymax_pos / 2 - ypos;
     if(ywalk > 0){
@@ -209,8 +213,7 @@ void motor_calibration(char motor_type) {
     }
     
     // Center XY-Direction
-    if(bin_chan()==60 && motor_type!='z'){
-      center();
+    if(bin_chan()==60){
       break;
     }
     
@@ -223,7 +226,7 @@ void motor_calibration(char motor_type) {
         }
         Serial.println("Z-Calib-Set");
         move_motor(motor_type, caldl, *current_max_pos, 'r');
-        move_motor(motor_type, caldl, *current_max_pos * 3, 'l');
+        move_motor(motor_type, caldl, *current_max_pos * zmulti, 'l');
         break;
       }else if(set_cnt == 0){  // Motor-Type is X or Y if not Z
         if(moved==false){
@@ -297,6 +300,7 @@ void loop() {
     current_max_pos = &xmax_pos;
     
     motor_calibration('x');
+    centerx();
   }
   
   // Motor Y-Direction
@@ -306,6 +310,7 @@ void loop() {
     current_max_pos = &ymax_pos;
     
     motor_calibration('y');
+    centery();
   }
   
   // Motor Z-Direction
@@ -317,11 +322,6 @@ void loop() {
     motor_calibration('z');
   }
 
-  // Center XY-Direction
-  if(bin_chan()==60){
-    center();
-  }
-
   // Start Sequence
   if(bin_chan()==32){
     
@@ -331,7 +331,7 @@ void loop() {
     digitalWrite(A0, LOW);
     
     // Move down in Z-Axis
-    move_motor('z', zdly, zrange * 3, 'r');
+    move_motor('z', zdly, zrange * zmulti, 'r');
     
     delay(ontime);
     
@@ -341,10 +341,17 @@ void loop() {
     digitalWrite(A1, LOW);
     
     // Move up in Z-Axis
-    move_motor('z', zdly, zrange * 3, 'l');
+    move_motor('z', zdly, zrange * zmulti, 'l');
 
     // Randomly move X-Axis in given boundaries
-    xwalk = random(0 - xpos + minwalk, xmax_pos - xpos);
+    int xbegin = 0 - xpos + minwalk;
+    int xend = xmax_pos - xpos;
+    if(xbegin<xend){
+      xwalk = random(xbegin, xend);
+    }else{
+      xwalk = random(xend, xbegin);
+    }
+    
     xpos += xwalk;
 
     if(xwalk > 0){
@@ -354,7 +361,13 @@ void loop() {
     }
 
     // Randomly move Y-Axis in given boundaries
-    ywalk = random(0 - ypos + minwalk, ymax_pos - ypos);
+    int ybegin = 0 - ypos + minwalk;
+    int yend = ymax_pos - ypos;
+    if(ybegin<yend){
+      ywalk = random(ybegin, yend);
+    }else{
+      ywalk = random(yend, ybegin);
+    }
     ypos += ywalk;
 
     if(ywalk > 0){
