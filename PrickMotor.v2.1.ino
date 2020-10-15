@@ -20,11 +20,11 @@
 #define ALLSTBY 11
 
 int xpos = 0;
-int xmax_pos = 400 * 8;
+int xmax_pos = 400;
 int xwalk;
 
 int ypos = 0;
-int ymax_pos = 200 * 8;
+int ymax_pos = 200;
 int ywalk;
 
 int * current_pos;
@@ -73,6 +73,8 @@ void set_microstepping() {
   minwalk *= micro_mode;
   elast_comp *= micro_mode;
   calsteps *= micro_mode;
+  xmax_pos *= micro_mode;
+  ymax_pos *= micro_mode;
 
   zdly /= micro_mode;
   xydly /= micro_mode;
@@ -142,7 +144,7 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
 
 int bin_chan() {
   int input1 = digitalRead(A2) * 4 + digitalRead(A3) * 8 + digitalRead(A4) * 16 + digitalRead(A5) * 32;
-  delayMicroseconds(100);
+  delay(1);
   int input2 = digitalRead(A2) * 4 + digitalRead(A3) * 8 + digitalRead(A4) * 16 + digitalRead(A5) * 32;
   if(input1 == input2){
     return input1;
@@ -154,6 +156,7 @@ int bin_chan() {
 void motor_calibration(char motor_type) {
   int calstp = calsteps;
   int caldl = caldly;
+  bool moved = false;
 
   if(motor_type=='x'){
     // Adjust to double StepCount for X-Motor
@@ -166,33 +169,39 @@ void motor_calibration(char motor_type) {
     if(bin_chan()==52){
       move_motor(motor_type, caldl, calstp, 'l');
       *current_pos += calstp;
+      moved = true;
     }
     
     // Decrease Direction for calsteps
     if(bin_chan()==48){
       move_motor(motor_type, caldl, calstp, 'r');
       *current_pos -= calstp;
+      moved = true;
     }
     
     // Set Min/Max depending on set_cnt and motor_type
     if(bin_chan()==56){
-      if(motor_type == 'z'){
-        move_motor(motor_type, caldl, *current_max_pos, 'r');
-        delay(500);
-        move_motor(motor_type, caldl, *current_max_pos * 3, 'l');
-        cal_active = false;
-      }else if(set_cnt == 0){
-        *current_pos = 0;
-        *current_max_pos = 0;
-        set_cnt = 1;
-        delay(500);
-      }else if(set_cnt == 1){
-        *current_max_pos = *current_pos;
-        set_cnt = 0;
-        cal_active = false;
+      if(moved==true){
+        if(motor_type == 'z'){
+          move_motor(motor_type, caldl, *current_max_pos, 'r');
+          delay(500);
+          move_motor(motor_type, caldl, *current_max_pos * 3, 'l');
+          cal_active = false;
+        }else if(set_cnt == 0){
+          *current_pos = 0;
+          *current_max_pos = 0;
+          set_cnt = 1;
+          delay(500);
+        }else if(set_cnt == 1){
+          *current_max_pos = *current_pos;
+          set_cnt = 0;
+          cal_active = false;
+          delay(500);
+        }
+      }else{
+        cal_activate = false;
         delay(500);
       }
-    }
   }
 }
 
