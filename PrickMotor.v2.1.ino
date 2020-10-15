@@ -27,10 +27,10 @@ int ypos = 0;
 int ymax_pos = 200;
 int ywalk;
 
+int zpos = 0;
+
 int * current_pos;
 int * current_max_pos;
-
-bool cal_active = false;
 int unsigned set_cnt = 0;
 
 // Steps to go down from zero at skin, twice up
@@ -38,9 +38,9 @@ int zrange = 60;
 // Minimum Steps to walk randomly in XY-Direction
 int minwalk = 100;
 // Elasticity-Compensation for XY-Direction (moving a bit farther and then back)
-int elast_comp = 40;
+int elast_comp = 20;
 //Step-Count for one Calibration step
-int calsteps = 25;
+int calsteps = 50;
 //Velocity in microseconds for z-direction
 int zdly = 4000;
 //Velocity in microseconds for xy-direction
@@ -144,7 +144,7 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
 
 int bin_chan() {
   int input1 = digitalRead(A2) * 4 + digitalRead(A3) * 8 + digitalRead(A4) * 16 + digitalRead(A5) * 32;
-  delay(1);
+  delayMicroseconds(10);
   int input2 = digitalRead(A2) * 4 + digitalRead(A3) * 8 + digitalRead(A4) * 16 + digitalRead(A5) * 32;
   if(input1 == input2){
     return input1;
@@ -153,20 +153,47 @@ int bin_chan() {
   }
 }
 
+void center() {
+    Serial.println("Centering");
+    // Center X-Direction
+    xwalk = xmax_pos / 2 - xpos;
+    if(xwalk > 0){
+      move_motor('x', xydly, abs(xwalk), 'l');
+    }else{
+      move_motor('x', xydly, abs(xwalk), 'r');
+    }
+    xpos = xmax_pos / 2;
+
+    // Center Y-Direction
+    ywalk = ymax_pos / 2 - ypos;
+    if(ywalk > 0){
+      move_motor('y', xydly, abs(ywalk), 'l');
+    }else{
+      move_motor('y', xydly, abs(ywalk), 'r');
+    }
+    ypos = ymax_pos / 2;
+}
+
 void motor_calibration(char motor_type) {
   int calstp = calsteps;
   int caldl = caldly;
   bool moved = false;
 
+  Serial.print("MotorCalib: ");
+  Serial.println(motor_type);
+  
   if(motor_type=='x'){
     // Adjust to double StepCount for X-Motor
     calstp = calsteps * 2;
     caldl = caldly / 2;
   }
   
-  while(cal_active==true){
+  while(true){
     // Increase Direction for calsteps
+
     if(bin_chan()==52){
+      Serial.print("Increase Motor ");
+      Serial.println(motor_type);
       move_motor(motor_type, caldl, calstp, 'l');
       *current_pos += calstp;
       moved = true;
@@ -174,33 +201,50 @@ void motor_calibration(char motor_type) {
     
     // Decrease Direction for calsteps
     if(bin_chan()==48){
+      Serial.print("Decrease Motor ");
+      Serial.println(motor_type);
       move_motor(motor_type, caldl, calstp, 'r');
       *current_pos -= calstp;
       moved = true;
     }
     
+    // Center XY-Direction
+    if(bin_chan()==60 && motor_type!='z'){
+      center();
+      break;
+    }
+    
     // Set Min/Max depending on set_cnt and motor_type
     if(bin_chan()==56){
-      if(moved==true){
-        if(motor_type == 'z'){
-          move_motor(motor_type, caldl, *current_max_pos, 'r');
-          delay(500);
-          move_motor(motor_type, caldl, *current_max_pos * 3, 'l');
-          cal_active = false;
-        }else if(set_cnt == 0){
-          *current_pos = 0;
-          *current_max_pos = 0;
-          set_cnt = 1;
-          delay(500);
-        }else if(set_cnt == 1){
-          *current_max_pos = *current_pos;
-          set_cnt = 0;
-          cal_active = false;
-          delay(500);
+      if(motor_type == 'z'){
+        if(moved==false){
+          Serial.println("Skip Set");
+          break;
         }
-      }else{
-        cal_active = false;
-        delay(500);
+        Serial.println("Z-Calib-Set");
+        move_motor(motor_type, caldl, *current_max_pos, 'r');
+        move_motor(motor_type, caldl, *current_max_pos * 3, 'l');
+        break;
+      }else if(set_cnt == 0){  // Motor-Type is X or Y if not Z
+        if(moved==false){
+          Serial.println("Skip Set");
+          break;
+        }
+        Serial.println("XY-Calib 1");
+        *current_pos = 0;
+        *current_max_pos = 0;
+        set_cnt = 1;
+        delay(400);
+      }else if(set_cnt == 1){
+        if(moved==false){
+          Serial.println("Skip Set");
+          break;
+        }
+        Serial.println("XY-Calib 2");
+        *current_max_pos = *current_pos;
+        set_cnt = 0;
+        delay(400);
+        break;
       }
     }
   }
@@ -237,6 +281,8 @@ void setup() {
 
   // Set Microstepping
   set_microstepping();
+
+  Serial.begin(9600);
   
 }
 
@@ -247,7 +293,6 @@ void loop() {
   // Motor X-Direction
   if(bin_chan()==36){
 
-    cal_active = true;
     current_pos = &xpos;
     current_max_pos = &xmax_pos;
     
@@ -256,8 +301,6 @@ void loop() {
   
   // Motor Y-Direction
   if(bin_chan()==40){
-
-    cal_active = true;
 
     current_pos = &ypos;
     current_max_pos = &ymax_pos;
@@ -268,33 +311,15 @@ void loop() {
   // Motor Z-Direction
   if(bin_chan()==44){
 
-    cal_active = true;
-    current_pos = 0;
+    current_pos = &zpos;
     current_max_pos = &zrange;
     
     motor_calibration('z');
-    
   }
 
   // Center XY-Direction
   if(bin_chan()==60){
-    // Center X-Direction
-    xwalk = xmax_pos / 2 - xpos;
-    if(xwalk > 0){
-      move_motor('x', xydly, abs(xwalk), 'l');
-    }else{
-      move_motor('x', xydly, abs(xwalk), 'r');
-    }
-    xpos = xmax_pos / 2;
-
-    // Center Y-Direction
-    ywalk = ymax_pos / 2 - ypos;
-    if(ywalk > 0){
-      move_motor('y', xydly, abs(ywalk), 'l');
-    }else{
-      move_motor('y', xydly, abs(ywalk), 'r');
-    }
-    ypos = ymax_pos / 2;
+    center();
   }
 
   // Start Sequence
