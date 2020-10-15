@@ -199,9 +199,10 @@ void motor_calibration(char motor_type) {
           delay(500);
         }
       }else{
-        cal_activate = false;
+        cal_active = false;
         delay(500);
       }
+    }
   }
 }
 
@@ -295,18 +296,6 @@ void loop() {
     }
     ypos = ymax_pos / 2;
   }
-
-
-//  // uses old Matlab Prickstim to drive range of X and Y
-//  if(bin_chan()==40){
-//    move_motor('x', xydly, xmax_pos, 'l');
-//    delay(1000);
-//    move_motor('x', xydly, xmax_pos, 'r');
-//
-//    move_motor('y', xydly, xmax_pos, 'l');
-//    delay(1000);
-//    move_motor('y', xydly, xmax_pos, 'r');
-//  }
 
   // Start Sequence
   if(bin_chan()==32){
