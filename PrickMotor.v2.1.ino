@@ -37,12 +37,16 @@ int unsigned set_cnt = 0;
 int zrange = 60;
 // Multiplicator for Z
 int zmulti = 5;
+// Minimum time (ms) for Random Start-Delay
+int start_dly_min = 100;
+// Maximum time (ms) for Random Start-Delay
+int start_dly_max = 2000;
 // Minimum Steps to walk randomly in XY-Direction
-int minwalk = 150;
+int minwalk = 10;
 // Elasticity-Compensation for XY-Direction (moving a bit farther and then back)
-int elast_comp = 50;
+int elast_comp = 20;
 //Step-Count for one Calibration step
-int calsteps = 50;
+int calsteps = 25;
 //Velocity in microseconds for z-direction
 int zdly = 4000;
 //Velocity in microseconds for xy-direction
@@ -87,11 +91,16 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
   int dir;
   int stp;
   int en;
+  int el_comp = elast_comp;
 
   if(motor_type=='x'){
     dir = DIRX;
     stp = STEPX;
     en = ENX;
+    // Adjust to double step-count for motor x
+    step_count *= 2;
+    dly /= 2;
+    el_comp *= 2;
   }else if(motor_type=='y'){
     dir = DIRY;
     stp = STEPY;
@@ -104,7 +113,7 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
 
   if(motor_type!='z'){
     // Increase Step-Count to account for Fiber-Elasticity in X and Y
-    step_count += elast_comp;
+    step_count += el_comp;
   }
 
   // Set Direction
@@ -132,7 +141,7 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
       digitalWrite(dir, HIGH);
     }
     
-    for(int step = 0; step <= elast_comp; step++){
+    for(int step = 0; step <= el_comp; step++){
       digitalWrite(stp, HIGH);
       delayMicroseconds(dly);
       digitalWrite(stp, LOW);
@@ -146,7 +155,7 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
 
 int bin_chan() {
   int input1 = digitalRead(A2) * 4 + digitalRead(A3) * 8 + digitalRead(A4) * 16 + digitalRead(A5) * 32;
-  delayMicroseconds(10);
+  delayMicroseconds(100);
   int input2 = digitalRead(A2) * 4 + digitalRead(A3) * 8 + digitalRead(A4) * 16 + digitalRead(A5) * 32;
   if(input1 == input2){
     return input1;
@@ -186,15 +195,28 @@ void motor_calibration(char motor_type) {
   Serial.print("MotorCalib: ");
   Serial.println(motor_type);
   
-  if(motor_type=='x'){
-    // Adjust to double StepCount for X-Motor
-    calstp = calsteps * 2;
-    caldl = caldly / 2;
-  }
-  
   while(true){
+    // Change mode if not synchronous to matlab
+    if(bin_chan()==36){
+      motor_type=='x';
+      current_pos = &xpos;
+      current_max_pos = &xmax_pos;
+    }else if(bin_chan()==40){
+      motor_type=='y';
+      current_pos = &ypos;
+      current_max_pos = &ymax_pos;
+    }else if(bin_chan()==44){
+      motor_type=='z';
+      current_pos = &zpos;
+      current_max_pos = &zrange;
+    }
+    
+    // Break if quit
+    if(bin_chan()==60){
+      break;
+    }
+    
     // Increase Direction for calsteps
-
     if(bin_chan()==52){
       Serial.print("Increase Motor ");
       Serial.println(motor_type);
@@ -211,12 +233,7 @@ void motor_calibration(char motor_type) {
       *current_pos -= calstp;
       moved = true;
     }
-    
-    // Center XY-Direction
-    if(bin_chan()==60){
-      break;
-    }
-    
+
     // Set Min/Max depending on set_cnt and motor_type
     if(bin_chan()==56){
       if(motor_type == 'z'){
@@ -324,6 +341,9 @@ void loop() {
 
   // Start Sequence
   if(bin_chan()==32){
+
+    // Insert Random-Delay
+    delay(random(start_dly_min, start_dly_max));
     
     // Send Down-Trigger
     digitalWrite(A0, HIGH);
@@ -351,7 +371,6 @@ void loop() {
     }else{
       xwalk = random(xend, xbegin);
     }
-    
     xpos += xwalk;
 
     if(xwalk > 0){
