@@ -128,7 +128,7 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
   // Enable Motor
   digitalWrite(en, LOW);
   
-  for(int step = 0; step <= step_count; step++){
+  for(int step = 0; step < step_count; step++){
     digitalWrite(stp, HIGH);
     delayMicroseconds(dly);
     digitalWrite(stp, LOW);
@@ -146,7 +146,7 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
       digitalWrite(dir, HIGH);
     }
     
-    for(int step = 0; step <= el_comp; step++){
+    for(int step = 0; step < el_comp; step++){
       digitalWrite(stp, HIGH);
       delayMicroseconds(dly);
       digitalWrite(stp, LOW);
