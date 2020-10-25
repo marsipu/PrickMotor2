@@ -152,6 +152,9 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
       digitalWrite(stp, LOW);
       delayMicroseconds(dly);
     }
+    // not disabling drivers before motor has come to standstill
+    delay(MOTOR_STOP_DELAY_MS);
+
     // Only X and Y are disabled after movement, Z stays on since calibration
     digitalWrite(en, HIGH);
   }
