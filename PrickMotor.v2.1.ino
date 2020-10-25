@@ -19,6 +19,8 @@
 // All Standby-Inputs from all drivers together
 #define ALLSTBY 11
 
+#define MOTOR_STOP_DELAY_MS 20
+
 int xpos = 0;
 int xmax_pos = 400;
 int xwalk;
@@ -134,6 +136,9 @@ void move_motor(char motor_type, int dly, int step_count, char direct) {
   }
 
   if(motor_type!='z'){
+    // wait shortly before changing direction
+    delay(MOTOR_STOP_DELAY_MS);
+
     // Reverse Movemont to account for Fiber-Elasticity in X and Y
     if(direct=='l'){
       digitalWrite(dir, LOW);
