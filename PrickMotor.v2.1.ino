@@ -20,13 +20,16 @@
 #define ALLSTBY 11
 
 #define MOTOR_STOP_DELAY_MS 20
+static const int micro_mode = 8;
+static const int mode3 = HIGH;
+static const int mode4 = HIGH;
 
 int xpos = 0;
-int xmax_pos = 400;
+int xmax_pos = 200 * micro_mode;
 int xwalk;
 
 int ypos = 0;
-int ymax_pos = 200;
+int ymax_pos = 200 * micro_mode;
 int ywalk;
 
 int zpos = 0;
@@ -36,36 +39,32 @@ int * current_max_pos;
 int unsigned set_cnt = 0;
 
 // Steps to go down from zero at skin, twice up
-int zrange = 60;
+int zrange = 60 * micro_mode;
 // Multiplicator for Z
-int zmulti = 5;
+static const int zmulti = 5;
 // Minimum time (ms) for Random Start-Delay
-int start_dly_min = 100;
+static const int start_dly_min = 100;
 // Maximum time (ms) for Random Start-Delay
-int start_dly_max = 2000;
+static const int start_dly_max = 2000;
 // Minimum Steps to walk randomly in XY-Direction
-int minwalk = 10;
+static const int minwalk = 10 * micro_mode;
 // Elasticity-Compensation for XY-Direction (moving a bit farther and then back)
-int elast_comp = 20;
+static const int elast_comp = 20 * micro_mode;
 //Step-Count for one Calibration step
-int calsteps = 25;
+static const int calsteps = 25 * micro_mode;
 //Velocity in microseconds for z-direction
-int zdly = 4000;
+static const int zdly = 4000 / micro_mode;
 //Velocity in microseconds for xy-direction
-int xydly = 4000;
+static const int xydly = 4000 / micro_mode;
 // Delay for Calibration in microseconds
-int caldly = 4000;
+static const int caldly = 4000 / micro_mode;
 //Latency between Down and Up in miliseconds
-int ontime = 1200;
+static const int ontime = 1200;
 //Latency between Z-Movement and XY-Movement in miliseconds
-int after_stim = 4000;
+static const int after_stim = 4000;
 
 void set_microstepping() {
   // Set Microstepping-Mode (in combination with hardwired Mode 1 and Mode 2)
-  int micro_mode = 8;
-  int mode3 = HIGH;
-  int mode4 = HIGH;
-  
   digitalWrite(STEPX, mode3);
   digitalWrite(DIRX, mode4);
 
@@ -76,17 +75,6 @@ void set_microstepping() {
   digitalWrite(DIRZ, mode4);
 
   digitalWrite(ALLSTBY, HIGH);
-
-  zrange *= micro_mode;
-  minwalk *= micro_mode;
-  elast_comp *= micro_mode;
-  calsteps *= micro_mode;
-  xmax_pos *= micro_mode;
-  ymax_pos *= micro_mode;
-
-  zdly /= micro_mode;
-  xydly /= micro_mode;
-  caldly /= micro_mode;
 }
 
 void move_motor(char motor_type, int dly, int step_count, char direct) {
