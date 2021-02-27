@@ -53,7 +53,7 @@ static const int elast_comp = 20 * micro_mode;
 //Step-Count for one Calibration step
 static const int calsteps = 25 * micro_mode;
 //Velocity in microseconds for z-direction
-static const int zdly = 4000 / micro_mode;
+int zdly = 4000 / micro_mode;
 //Velocity in microseconds for xy-direction
 static const int xydly = 4000 / micro_mode;
 // Delay for Calibration in microseconds
@@ -272,7 +272,7 @@ void setup() {
 
   // Control IO
   pinMode(A0, OUTPUT); // Start-Motor-Signal (from Arduino)
-  pinMode(A1, OUTPUT); // Stop-Motor-Signal (from Arduino)
+  pinMode(A1, INPUT); // Stop-Motor-Signal (from Arduino)
   pinMode(A2, INPUT); // Binary Inputs from Matlab 4
   pinMode(A3, INPUT); // Binary Inputs from Matlab 8
   pinMode(A4, INPUT); // Binary Inputs from Matlab 16
@@ -304,6 +304,16 @@ void setup() {
 
 void loop() {
 // put your main code here, to run repeatedly:
+
+  // Read Speed-Value from Potentiometer
+  int velo_value = digitalRead(A1);
+  if(velo_value<333){
+    zdly = 2000 / micro_mode;
+  }else if(333<velo_value<666){
+    zdly = 4000 / micro_mode;
+  }else if (666<velo_value){
+    zdly = 6000 / micro_mode;
+  }
 
   // Select Motors
   // Motor X-Direction
@@ -351,10 +361,10 @@ void loop() {
     
     delay(ontime);
     
-    // Send Up-Trigger
-    digitalWrite(A1, HIGH);
-    delay(10);
-    digitalWrite(A1, LOW);
+    // // Send Up-Trigger
+    // digitalWrite(A1, HIGH);
+    // delay(10);
+    // digitalWrite(A1, LOW);
     
     // Move up in Z-Axis
     move_motor('z', zdly, zrange * zmulti, 'l');
