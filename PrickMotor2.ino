@@ -25,11 +25,11 @@ static const int mode3 = HIGH;
 static const int mode4 = HIGH;
 
 int xpos = 0;
-int xmax_pos = 200 * micro_mode;
+int xmax_pos = 0;
 int xwalk;
 
 int ypos = 0;
-int ymax_pos = 200 * micro_mode;
+int ymax_pos = 0;
 int ywalk;
 
 int zpos = 0;
