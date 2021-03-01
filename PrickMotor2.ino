@@ -38,6 +38,9 @@ int * current_pos;
 int * current_max_pos;
 int unsigned set_cnt = 0;
 
+// Number of Repetitions for calibration tests
+int n_repetitions = 40;
+
 // Steps to go down from zero at skin, twice up
 int zrange = 60 * micro_mode;
 // Multiplicator for Z
@@ -271,12 +274,9 @@ void setup() {
   // put your setup code here, to run once:
 
   // Control IO
-  pinMode(A0, OUTPUT); // Start-Motor-Signal (from Arduino)
-  pinMode(A1, INPUT); // Stop-Motor-Signal (from Arduino)
-  pinMode(A2, INPUT); // Binary Inputs from Matlab 4
-  pinMode(A3, INPUT); // Binary Inputs from Matlab 8
-  pinMode(A4, INPUT); // Binary Inputs from Matlab 16
-  pinMode(A5, INPUT); // Binary Inputs from Matlab 32
+  pinMode(A0, INPUT); // Stop
+  pinMode(A1, INPUT); // Start
+  pinMode(A2, OUTPUT); // Direction-Signal (from Arduino)
   
   // Motor IO
   pinMode(DIRX, OUTPUT);
@@ -295,6 +295,9 @@ void setup() {
   digitalWrite(ENY, HIGH);
   digitalWrite(ENZ, HIGH);
 
+  // Set Direction-Signal to Low
+  digitalWrite(A1, LOW);
+
   // Set Microstepping
   set_microstepping();
 
@@ -305,6 +308,9 @@ void setup() {
 void loop() {
 // put your main code here, to run repeatedly:
 
+  // Disable Motor in Pauses to make movement possible
+  digitalWrite(ENZ, HIGH);
+
   // Read Speed-Value from Potentiometer
   int velo_value = digitalRead(A1);
   if(velo_value<333){
@@ -314,93 +320,32 @@ void loop() {
   }else if (666<velo_value){
     zdly = 6000 / micro_mode;
   }
-
-  // Select Motors
-  // Motor X-Direction
-  if(bin_chan()==36){
-
-    current_pos = &xpos;
-    current_max_pos = &xmax_pos;
-    
-    motor_calibration('x');
-    centerx();
-  }
   
-  // Motor Y-Direction
-  if(bin_chan()==40){
+  if(digitalRead(A1)==1){
+    // Start Sequence
+    for(int i=0; i<n_repetitions; i++){
 
-    current_pos = &ypos;
-    current_max_pos = &ymax_pos;
-    
-    motor_calibration('y');
-    centery();
-  }
-  
-  // Motor Z-Direction
-  if(bin_chan()==44){
-
-    current_pos = &zpos;
-    current_max_pos = &zrange;
-    
-    motor_calibration('z');
-  }
-
-  // Start Sequence
-  if(bin_chan()==32){
-
-    // Insert Random-Delay
-    delay(random(start_dly_min, start_dly_max));
-    
-    // Send Down-Trigger
-    digitalWrite(A0, HIGH);
-    delay(10);
-    digitalWrite(A0, LOW);
-    
-    // Move down in Z-Axis
-    move_motor('z', zdly, zrange * zmulti, 'r');
-    
-    delay(ontime);
-    
-    // // Send Up-Trigger
-    // digitalWrite(A1, HIGH);
-    // delay(10);
-    // digitalWrite(A1, LOW);
-    
-    // Move up in Z-Axis
-    move_motor('z', zdly, zrange * zmulti, 'l');
-
-    // Randomly move X-Axis in given boundaries
-    int xbegin = 0 - xpos + minwalk;
-    int xend = xmax_pos - xpos;
-    if(xbegin<xend){
-      xwalk = random(xbegin, xend);
-    }else{
-      xwalk = random(xend, xbegin);
+      if(digitalRead(A0)==1){
+        break;
+      }
+      
+      // Insert Random-Delay
+      delay(random(start_dly_min, start_dly_max));
+      Serial.println(i);
+      // Send Down-Direction
+      digitalWrite(A2, HIGH);
+      
+      // Move down in Z-Axis
+      move_motor('z', zdly, zrange * zmulti, 'r');
+      
+      delay(ontime);
+      
+      // Send Up-Direction
+      digitalWrite(A2, LOW);
+      
+      // Move up in Z-Axis
+      move_motor('z', zdly, zrange * zmulti, 'l');
     }
-    xpos += xwalk;
-
-    if(xwalk > 0){
-      move_motor('x', xydly, abs(xwalk), 'l');
-    }else{
-      move_motor('x', xydly, abs(xwalk), 'r');
-    }
-
-    // Randomly move Y-Axis in given boundaries
-    int ybegin = 0 - ypos + minwalk;
-    int yend = ymax_pos - ypos;
-    if(ybegin<yend){
-      ywalk = random(ybegin, yend);
-    }else{
-      ywalk = random(yend, ybegin);
-    }
-    ypos += ywalk;
-
-    if(ywalk > 0){
-      move_motor('y', xydly, abs(ywalk), 'l');
-    }else{
-      move_motor('y', xydly, abs(ywalk), 'r');
-    }
-    
   }
 
 }
