@@ -308,11 +308,11 @@ void loop() {
   // Read Speed-Value from Potentiometer
   int velo_value = digitalRead(A1);
   if(velo_value<333){
-    zdly = 2000 / micro_mode;
-  }else if(333<velo_value<666){
     zdly = 4000 / micro_mode;
+  }else if(333<velo_value && velo_value<666){
+    zdly = 2000 / micro_mode;
   }else if (666<velo_value){
-    zdly = 6000 / micro_mode;
+    zdly = 1000 / micro_mode;
   }
 
   // Select Motors
