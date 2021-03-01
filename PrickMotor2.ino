@@ -304,19 +304,22 @@ void setup() {
 
   Serial.begin(9600);
   
+  // Disable Motor in Pauses to make movement possible
+  digitalWrite(ENZ, HIGH);
+
 }
 
 void loop() {
 // put your main code here, to run repeatedly:
 
-  // Disable Motor in Pauses to make movement possible
-  digitalWrite(ENZ, HIGH);
 
   if(digitalRead(A1)==1){
     // Start Sequence
     for(int i=0; i<n_repetitions; i++){
 
       if(digitalRead(A0)==1){
+        // Disable Motor in Pauses to make movement possible
+        digitalWrite(ENZ, HIGH);
         break;
       }
       
