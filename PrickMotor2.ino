@@ -276,8 +276,9 @@ void setup() {
   // Control IO
   pinMode(A0, INPUT); // Stop
   pinMode(A1, INPUT); // Start
-  pinMode(A2, OUTPUT); // Direction-Signal (from Arduino)
-  
+  pinMode(A2, INPUT); // Analog Input from Potentiometer for Velocity
+  pinMode(A3, OUTPUT);  // Direction-Signal (from Arduino)
+
   // Motor IO
   pinMode(DIRX, OUTPUT);
   pinMode(STEPX, OUTPUT);
@@ -311,16 +312,6 @@ void loop() {
   // Disable Motor in Pauses to make movement possible
   digitalWrite(ENZ, HIGH);
 
-  // Read Speed-Value from Potentiometer
-  int velo_value = digitalRead(A1);
-  if(velo_value<333){
-    zdly = 2000 / micro_mode;
-  }else if(333<velo_value<666){
-    zdly = 4000 / micro_mode;
-  }else if (666<velo_value){
-    zdly = 6000 / micro_mode;
-  }
-  
   if(digitalRead(A1)==1){
     // Start Sequence
     for(int i=0; i<n_repetitions; i++){
@@ -329,11 +320,23 @@ void loop() {
         break;
       }
       
+      // Read Speed-Value from Potentiometer
+      int velo_value = analogRead(A2);
+      if(velo_value<333){
+        zdly = 4000 / micro_mode;
+      }else if(333<velo_value && velo_value<666){
+        zdly = 2000 / micro_mode;
+      }else if(666<velo_value){
+        zdly = 1000 / micro_mode;
+      }
+      Serial.println(velo_value);
+      Serial.println(zdly);
+
       // Insert Random-Delay
       delay(random(start_dly_min, start_dly_max));
       Serial.println(i);
       // Send Down-Direction
-      digitalWrite(A2, HIGH);
+      digitalWrite(A3, HIGH);
       
       // Move down in Z-Axis
       move_motor('z', zdly, zrange * zmulti, 'r');
@@ -341,7 +344,7 @@ void loop() {
       delay(ontime);
       
       // Send Up-Direction
-      digitalWrite(A2, LOW);
+      digitalWrite(A3, LOW);
       
       // Move up in Z-Axis
       move_motor('z', zdly, zrange * zmulti, 'l');
