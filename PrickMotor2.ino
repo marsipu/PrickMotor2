@@ -272,7 +272,7 @@ void setup() {
 
   // Control IO
   pinMode(A0, OUTPUT); // Start-Motor-Signal (from Arduino)
-  pinMode(A1, INPUT); // Stop-Motor-Signal (from Arduino)
+  pinMode(A1, OUTPUT); // Stop-Motor-Signal (from Arduino)
   pinMode(A2, INPUT); // Binary Inputs from Matlab 4
   pinMode(A3, INPUT); // Binary Inputs from Matlab 8
   pinMode(A4, INPUT); // Binary Inputs from Matlab 16
@@ -304,16 +304,6 @@ void setup() {
 
 void loop() {
 // put your main code here, to run repeatedly:
-
-  // Read Speed-Value from Potentiometer
-  int velo_value = digitalRead(A1);
-  if(velo_value<333){
-    zdly = 4000 / micro_mode;
-  }else if(333<velo_value && velo_value<666){
-    zdly = 2000 / micro_mode;
-  }else if (666<velo_value){
-    zdly = 1000 / micro_mode;
-  }
 
   // Select Motors
   // Motor X-Direction
@@ -351,10 +341,18 @@ void loop() {
     // Insert Random-Delay
     delay(random(start_dly_min, start_dly_max));
     
-    // Send Down-Trigger
-    digitalWrite(A0, HIGH);
-    delay(10);
-    digitalWrite(A0, LOW);
+    int define_velo = rand();
+    if(define_velo > (RAND_MAX / 2)){
+      zdly = 2000 / micro_mode;
+      digitalWrite(A0, HIGH);
+      delay(10);
+      digitalWrite(A0, LOW);
+    }else{
+      zdly = 1000 / micro_mode;
+      digitalWrite(A1, HIGH);
+      delay(10);
+      digitalWrite(A1, LOW);
+    }
     
     // Move down in Z-Axis
     move_motor('z', zdly, zrange * zmulti, 'r');
