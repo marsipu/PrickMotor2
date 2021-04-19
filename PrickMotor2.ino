@@ -42,18 +42,24 @@ int unsigned set_cnt = 0;
 int zrange = 60 * micro_mode;
 // Multiplicator for Z
 static const int zmulti = 5;
-// Minimum time (ms) for Random Start-Delay
-static const int start_dly_min = 100;
-// Maximum time (ms) for Random Start-Delay
-static const int start_dly_max = 2000;
+// // Minimum time (ms) for Random Start-Delay
+// static const int start_dly_min = 100;
+// // Maximum time (ms) for Random Start-Delay
+// static const int start_dly_max = 2000;
 // Minimum Steps to walk randomly in XY-Direction
 static const int minwalk = 10 * micro_mode;
 // Elasticity-Compensation for XY-Direction (moving a bit farther and then back)
 static const int elast_comp = 20 * micro_mode;
 //Step-Count for one Calibration step
 static const int calsteps = 25 * micro_mode;
-//Velocity in microseconds for z-direction
-static const int zdly = 4000 / micro_mode;
+// Velocity in mm/s for z-direction
+static const int zvelo = 33;
+// Circumference of Rod on which the cord of the z-direction is wound up (in mm)
+static const int zcircum = 31;
+// Step count for one turn of stepper-motor for z-direction
+static const int zstepcnt = 200;
+//Time for each step in microseconds for z-direction (considering also micro-mode)
+int zdly = (zcircum * micro_mode) / (zvelo * zstepcnt);
 //Velocity in microseconds for xy-direction
 static const int xydly = 4000 / micro_mode;
 // Delay for Calibration in microseconds
@@ -338,23 +344,31 @@ void loop() {
   // Start Sequence
   if(bin_chan()==32){
 
-    // Insert Random-Delay
-    delay(random(start_dly_min, start_dly_max));
+    // // Insert Random-Delay
+    // delay(random(start_dly_min, start_dly_max));
     
-    // Send Down-Trigger
-    digitalWrite(A0, HIGH);
-    delay(10);
-    digitalWrite(A0, LOW);
+    int define_velo = rand();
+    if(define_velo > (RAND_MAX / 2)){
+      zdly = 2000 / micro_mode;
+      digitalWrite(A0, HIGH);
+      delay(10);
+      digitalWrite(A0, LOW);
+    }else{
+      zdly = 1000 / micro_mode;
+      digitalWrite(A1, HIGH);
+      delay(10);
+      digitalWrite(A1, LOW);
+    }
     
     // Move down in Z-Axis
     move_motor('z', zdly, zrange * zmulti, 'r');
     
     delay(ontime);
     
-    // Send Up-Trigger
-    digitalWrite(A1, HIGH);
-    delay(10);
-    digitalWrite(A1, LOW);
+    // // Send Up-Trigger
+    // digitalWrite(A1, HIGH);
+    // delay(10);
+    // digitalWrite(A1, LOW);
     
     // Move up in Z-Axis
     move_motor('z', zdly, zrange * zmulti, 'l');
