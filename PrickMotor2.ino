@@ -347,28 +347,20 @@ void loop() {
     // // Insert Random-Delay
     // delay(random(start_dly_min, start_dly_max));
     
-    int define_velo = rand();
-    if(define_velo > (RAND_MAX / 2)){
-      zdly = 2000 / micro_mode;
-      digitalWrite(A0, HIGH);
-      delay(10);
-      digitalWrite(A0, LOW);
-    }else{
-      zdly = 1000 / micro_mode;
-      digitalWrite(A1, HIGH);
-      delay(10);
-      digitalWrite(A1, LOW);
-    }
+    zdly = 2000 / micro_mode;
+    digitalWrite(A0, HIGH);
+    delay(10);
+    digitalWrite(A0, LOW);
     
     // Move down in Z-Axis
     move_motor('z', zdly, zrange * zmulti, 'r');
     
     delay(ontime);
     
-    // // Send Up-Trigger
-    // digitalWrite(A1, HIGH);
-    // delay(10);
-    // digitalWrite(A1, LOW);
+    // Send Up-Trigger
+    digitalWrite(A1, HIGH);
+    delay(10);
+    digitalWrite(A1, LOW);
     
     // Move up in Z-Axis
     move_motor('z', zdly, zrange * zmulti, 'l');
