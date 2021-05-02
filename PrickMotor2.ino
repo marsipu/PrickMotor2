@@ -47,19 +47,19 @@ static const int zmulti = 5;
 // // Maximum time (ms) for Random Start-Delay
 // static const int start_dly_max = 2000;
 // Minimum Steps to walk randomly in XY-Direction
-static const int minwalk = 10 * micro_mode;
+static const int minwalk = 50 * micro_mode;
 // Elasticity-Compensation for XY-Direction (moving a bit farther and then back)
-static const int elast_comp = 20 * micro_mode;
+static const int elast_comp = 10 * micro_mode;
 //Step-Count for one Calibration step
 static const int calsteps = 25 * micro_mode;
 // Velocity in mm/s for z-direction
-static const int zvelo = 33;
+static const int zvelo = 31;
 // Circumference of Rod on which the cord of the z-direction is wound up (in mm)
 static const int zcircum = 31;
 // Step count for one turn of stepper-motor for z-direction
 static const int zstepcnt = 200;
 //Time for each step in microseconds for z-direction (considering also micro-mode)
-int zdly = (zcircum * micro_mode) / (zvelo * zstepcnt);
+static const int zdly = (zcircum * 10^6) / (zvelo * zstepcnt * micro_mode * 2);
 //Velocity in microseconds for xy-direction
 static const int xydly = 4000 / micro_mode;
 // Delay for Calibration in microseconds
@@ -305,6 +305,7 @@ void setup() {
   set_microstepping();
 
   Serial.begin(9600);
+  Serial.println(zdly);
   
 }
 
@@ -347,7 +348,6 @@ void loop() {
     // // Insert Random-Delay
     // delay(random(start_dly_min, start_dly_max));
     
-    zdly = 2000 / micro_mode;
     digitalWrite(A0, HIGH);
     delay(10);
     digitalWrite(A0, LOW);
