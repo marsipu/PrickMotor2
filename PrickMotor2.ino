@@ -339,7 +339,10 @@ void loop() {
 
   // Start Sequence
   if(bin_chan()==32){
+    // Delay to seperate Triggers
+    delay(100);
 
+    // Send Down-Trigger
     digitalWrite(A0, HIGH);
     delay(10);
     digitalWrite(A0, LOW);
