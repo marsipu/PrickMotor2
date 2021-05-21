@@ -42,7 +42,7 @@ int unsigned set_cnt = 0;
 // Steps to go down from zero at skin, twice up
 int zrange = 60 * micro_mode;
 // Multiplicator for Z
-static const int zmulti = 5;
+static const int zmulti = 3;
 // Minimum Steps to walk randomly in XY-Direction
 static const int minwalk = 50 * micro_mode;
 // Elasticity-Compensation for XY-Direction (moving a bit farther and then back)
